@@ -1,82 +1,95 @@
 #include <iostream>
 using namespace std;
 
-struct Process {
-    string id;
-    int at, bt, ct, tat, wt;
-};
-
-void calculate(Process p[], int n) {
-    for (int i = 0; i < n; i++) {
-        p[i].tat = p[i].ct - p[i].at;
-        p[i].wt = p[i].tat - p[i].bt;
-    }
-}
-
-void fcfs(Process p[], int n) {
-    cout << "\n--- FCFS ---\n";
-
-    // Sort by arrival time
-    for (int i = 0; i < n-1; i++) {
-        for (int j = 0; j < n-i-1; j++) {
-            if (p[j].at > p[j+1].at ||
-               (p[j].at == p[j+1].at && p[j].id > p[j+1].id)) {
-                swap(p[j], p[j+1]);
-            }
-        }
-    }
-
-    int time = 0;
-
-    for (int i = 0; i < n; i++) {
-        if (time < p[i].at)
-            time = p[i].at;
-
-        time += p[i].bt;
-        p[i].ct = time;
-    }
-
-    calculate(p, n);
-
-    float totalWT = 0, totalTAT = 0;
-
-    cout << "\nID\tAT\tBT\tCT\tTAT\tWT\n";
-
-    for (int i = 0; i < n; i++) {
-        cout << p[i].id << "\t"
-             << p[i].at << "\t"
-             << p[i].bt << "\t"
-             << p[i].ct << "\t"
-             << p[i].tat << "\t"
-             << p[i].wt << endl;
-
-        totalWT += p[i].wt;
-        totalTAT += p[i].tat;
-    }
-
-    cout << "\nAverage WT = " << totalWT / n;
-    cout << "\nAverage TAT = " << totalTAT / n << endl;
-}
-
 int main() {
-    int n;
+    int n, m;
+
     cout << "Enter number of processes: ";
     cin >> n;
 
-    Process p[100];
+    cout << "Enter number of resources: ";
+    cin >> m;
+
+    int alloc[10][10], max[10][10], need[10][10];
+    int avail[10];
+
+    cout << "\nEnter Allocation Matrix:\n";
 
     for (int i = 0; i < n; i++) {
-        cout << "\nEnter Process ID: ";
-        cin >> p[i].id;
-
-        cout << "Enter Arrival Time: ";
-        cin >> p[i].at;
-
-        cout << "Enter Burst Time: ";
-        cin >> p[i].bt;
+        cout << "For P" << i << ":\n";
+        for (int j = 0; j < m; j++) {
+            cout << "Allocation for Resource R" << j << ": ";
+            cin >> alloc[i][j];
+        }
     }
 
-    fcfs(p, n);
+    cout << "\nEnter Max Matrix:\n";
 
-    return 0;
+    for (int i = 0; i < n; i++) {
+        cout << "For P" << i << ":\n";
+        for (int j = 0; j < m; j++) {
+            cout << "Max for Resource R" << j << ": ";
+            cin >> max[i][j];
+        }
+    }
+
+    cout << "\nEnter Available Resources:\n";
+
+    for (int j = 0; j < m; j++) {
+        cout << "Available of R" << j << ": ";
+        cin >> avail[j];
+    }
+
+    // Calculate Need
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++)
+            need[i][j] = max[i][j] - alloc[i][j];
+
+    bool finish[10] = {false};
+    int safeSeq[10];
+    int work[10];
+
+    for (int j = 0; j < m; j++)
+        work[j] = avail[j];
+
+    int count = 0;
+
+    while (count < n) {
+        bool found = false;
+
+        for (int i = 0; i < n; i++) {
+            if (!finish[i]) {
+                bool possible = true;
+
+                for (int j = 0; j < m; j++) {
+                    if (need[i][j] > work[j]) {
+                        possible = false;
+                        break;
+                    }
+                }
+
+                if (possible) {
+                    for (int j = 0; j < m; j++)
+                        work[j] += alloc[i][j];
+
+                    safeSeq[count++] = i;
+                    finish[i] = true;
+                    found = true;
+                }
+            }
+        }
+
+        if (!found) {
+            cout << "\nSystem is NOT in SAFE state (Deadlock possible)\n";
+            return 0;
+        }
+    }
+
+    cout << "\nSystem is in SAFE state\n";
+    cout << "Safe Sequence: ";
+
+    for (int i = 0; i < n; i++)
+        cout << "P" << safeSeq[i] << " ";
+
+    cout << endl;
 }
